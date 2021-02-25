@@ -98,6 +98,8 @@ async function initServer(member, alias) {
         var refId = Token.Util.generateNonce();
         var csrfToken = Token.Util.generateNonce();
         req.session.csrfToken = csrfToken;
+
+        console.log('CSRF TOKEN WHILE TRANSFER',req.session.csrfToken )
         var redirectUrl = req.protocol + '://' + req.get('host') + '/redeem';
 
         // set up the TokenRequest
@@ -113,69 +115,26 @@ async function initServer(member, alias) {
         // store the token request
         var request = await member.storeTokenRequest(tokenRequest)
         var requestId = request.id;
-        var tokenRequestUrl = Token.generateTokenRequestUrl(requestId);
-        res.redirect(302, tokenRequestUrl);
+
+        const tokenRequestUrl = Token.generateTokenRequestUrl(requestId);
+        const replaceurl = tokenRequestUrl.replace('https://', 'https://hsbc.');
+
+        res.redirect(302, replaceurl);
     });
 
-    app.get('/standing-order', async function (req, res) {
-        var redirectUrl = req.protocol + '://' + req.get('host') + '/redeem-standing-order';
-        var destination = {
-            sepa: {
-                iban: 'bic',
-                bic: 'DE16700222000072880129'
-            },
-            customerData: {
-                legalNames: ['merchant-sample-js']
-            }
-        };
-
-        var requestData = req.query;
-        var refId = Token.Util.generateNonce();
-        var csrfToken = Token.Util.generateNonce();
-        req.session.csrfToken = csrfToken;
-
-        var startDate = new Date().toISOString().split("T")[0];
-        var endDate = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0];
-
-        var tokenRequest = Token.createStandingOrderTokenRequest(requestData.amount, requestData.currency, 'MNTH', startDate, endDate)
-            .addTransferDestination(destination)
-            .setDescription(requestData.description)
-            .setToAlias(alias)
-            .setToMemberId(member.memberId())
-            .setRedirectUrl(redirectUrl)
-            .setCSRFToken(csrfToken)
-            .setRefId(refId);
-
-        var request = await member.storeTokenRequest(tokenRequest)
-        var requestId = request.id;
-        var tokenRequestUrl = Token.generateTokenRequestUrl(requestId);
-
-        res.redirect(302, tokenRequestUrl);
-    });
 
     app.get('/redeem', urlencodedParser, async function (req, res) {
         //get the token ID from the callback url
         var callbackUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+        console.log('CSRF TOKEN WHILE REDEEM',req.session.csrfToken )
         var result = await Token.parseTokenRequestCallbackUrl(callbackUrl, req.session.csrfToken);
         var token = await member.getToken(result.tokenId);
         //Redeem the token to move the funds
         var transfer = await member.redeemToken(token);
-        console.log('\n Redeem Token Response:', transfer);
-        res.status(200);
+        //console.log('\n Redeem Token Response:', transfer);
         res.send('Success! Redeemed transfer ' + transfer.id);
     });
 
-    app.get('/redeem-standing-order', urlencodedParser, async function (req, res) {
-        //get the token ID from the callback url
-        var callbackUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
-        var result = await Token.parseTokenRequestCallbackUrl(callbackUrl, req.session.csrfToken);
-
-        var standingOrderSubmission = await member.redeemStandingOrderToken(result.tokenId);
-
-        console.log('\n Redeem Token Response:', JSON.stringify(standingOrderSubmission));
-        res.status(200);
-        res.send('Success! Redeemed transfer ' + standingOrderSubmission.tokenId);
-    });
 
     app.use(express.static(__dirname));
     app.listen(3000, function () {

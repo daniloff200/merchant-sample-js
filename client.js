@@ -49,22 +49,7 @@ function redeemTokenPopUp() {
     } else {
         path = '/redeem-popup';
     }
-    return path;
-}
 
-function tokenPopupPath() {
-    var path = "";
-    if (selectedTransferType === 'STANDING_ORDER') {
-        path = '/standing-order-popup?';
-    } else if (selectedTransferType === 'FUTURE_DATED') {
-        path = '/future-dated-popup?';
-    } else if (selectedTransferType === 'ONE_STEP') {
-        path = '/one-step-payment-popup?';
-    } else if (selectedTransferType === 'CROSS_BORDER') {
-        path = '/cross-border-popup?';
-    } else {
-        path = '/transfer-popup?';
-    }
     return path;
 }
 
@@ -74,32 +59,12 @@ function setupButtonTypeSelector() {
     var selectedMode = modeSelector[0].value;
     selectedTransferType = transferTypeSelector[0].value;
 
-    for (var i = 0; i < transferTypeSelector.length; i++) {
-        transferTypeSelector[i].addEventListener('click', function (e) {
-            var value = e.target.value;
-            if (value === selectedTransferType) return;
-            selectedTransferType = value;
-            createTokenRequestButton(selectedMode)
-        });
-    }
 
-    for (var i = 0; i < modeSelector.length; i++) {
-        modeSelector[i].addEventListener('click', function (e) {
-            var value = e.target.value;
-            if (value === selectedMode) return;
-            selectedMode = value;
-            createTokenRequestButton(selectedMode)
-        });
-    }
     createTokenRequestButton(selectedMode);
 }
 
 function createTokenRequestButton(selectedMode) {
-    if (selectedMode === 'POPUP') {
-        createTokenButton('POPUP')
-    } else if (selectedMode === 'REDIRECT') {
-        createTokenButton('REDIRECT');
-    }
+        createTokenButton(selectedMode);
 }
 
 function createTokenButton(type) {
@@ -113,22 +78,25 @@ function createTokenButton(type) {
 
     // get button placeholder element
     var element = document.getElementById('tokenPayBtn');
-    const webapp = type === 'POPUP' ? true : false;
+    const webapp = true;
 
     // create the button
     button = token.createTokenButton(element, {
         label: 'Token Quick Checkout',
     });
 
-    var path = (type === 'POPUP') ? tokenPopupPath() : tokenRedirectPath();
+    var path =  tokenRedirectPath();
+    console.log(data)
     var queryString = Object.keys(data).map(key => key + '=' + window.encodeURIComponent(data[key])).join('&');
-
+    var successURL = `${redeemTokenPopUp()}?data=${window.encodeURIComponent(JSON.stringify(data))}`;
+    console.log(successURL, 'successUrl')
+    console.log(queryString, 'queryString')
     tokenController = token.createController({
         onSuccess: function (data) { // Success Callback
             // build success URL
             var successURL = `${redeemTokenPopUp()}?data=${window.encodeURIComponent(JSON.stringify(data))}`;
             // navigate to success URL
-            window.location.assign(successURL);
+         window.location.assign(successURL);
         },
         onError: function (error) { // Failure Callback
             throw error;
@@ -140,7 +108,8 @@ function createTokenButton(type) {
         button, // Token Button
         token.createRequest(
             redirect => {
-                window.location.assign(path + queryString);
+                console.log(path + queryString)
+              window.location.assign(path + queryString);
             },
             async (done, error) => {
                 fetch(path, {
@@ -157,6 +126,7 @@ function createTokenButton(type) {
                                     // execute callback when successful response is received
                                     done(data);
                                     console.log('data: ', data);
+
                                 });
                         }
                     });
@@ -168,7 +138,7 @@ function createTokenButton(type) {
             button.enable();
         },
         { // options
-            desktop: webapp ? 'POPUP' : 'REDIRECT',
+            desktop:  'REDIRECT',
         }
     );
 }
