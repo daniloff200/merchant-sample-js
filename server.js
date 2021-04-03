@@ -52,13 +52,13 @@ async function init() {
         // See https://developer.token.io/sdk/#aliases for more information.
         alias = {
             type: 'DOMAIN',
-            value: "msjs-" + Math.random().toString(36).substring(2, 10) + "+noverify@example.com"
+            value: 'dmitriy.danilov@valor-software.com'
         };
         member = await Token.createMember(alias, Token.UnsecuredFileCryptoEngine);
         // A member's profile has a display name and picture.
         // The Token UI shows this (and the alias) to the user when requesting access.
         await member.setProfile({
-            displayNameFirst: 'Demo Merchant'
+            displayNameFirst: 'Liberty Flights'
         });
         await member.setProfilePicture('image/png', fs.readFileSync('southside.png'))
     }
@@ -84,26 +84,25 @@ async function initServer(member, alias) {
 
     // Endpoint for transferring, called by client side after user approval
     app.get('/transfer', async function (req, res) {
-        var destination = {
+        const destination = {
             sepa: {
-                iban: 'bic',
-                bic: 'DE16700222000072880129'
+                iban: 'DE16700222000072880129',
+                bic: '123456'
             },
             customerData: {
-                legalNames: ['merchant-sample-js']
+                legalNames: ['liberty-flights']
             }
         };
 
-        var queryData = req.query;
-        var refId = Token.Util.generateNonce();
-        var csrfToken = Token.Util.generateNonce();
+        const queryData = req.query;
+        const refId = Token.Util.generateNonce();
+        const csrfToken = Token.Util.generateNonce();
         req.session.csrfToken = csrfToken;
 
-        console.log('CSRF TOKEN WHILE TRANSFER',req.session.csrfToken )
         var redirectUrl = req.protocol + '://' + req.get('host') + '/redeem';
 
         // set up the TokenRequest
-        var tokenRequest = Token.createTransferTokenRequest(queryData.amount, queryData.currency)
+        const tokenRequest = Token.createTransferTokenRequest(queryData.amount, queryData.currency)
             .setDescription(queryData.description)
             .setToAlias(alias)
             .setToMemberId(member.memberId())
@@ -112,27 +111,28 @@ async function initServer(member, alias) {
             .setCSRFToken(csrfToken)
             .setRefId(refId);
 
+
         // store the token request
-        var request = await member.storeTokenRequest(tokenRequest)
-        var requestId = request.id;
+        const request1 = await member.storeTokenRequest(tokenRequest);
+        const requestId = request1.id;
 
         const tokenRequestUrl = Token.generateTokenRequestUrl(requestId);
         const replaceurl = tokenRequestUrl.replace('https://', 'https://hsbc.');
-
         res.redirect(302, replaceurl);
     });
 
 
     app.get('/redeem', urlencodedParser, async function (req, res) {
-        //get the token ID from the callback url
+        // get the token ID from the callback url
         var callbackUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
-        console.log('CSRF TOKEN WHILE REDEEM',req.session.csrfToken )
-        var result = await Token.parseTokenRequestCallbackUrl(callbackUrl, req.session.csrfToken);
-        var token = await member.getToken(result.tokenId);
-        //Redeem the token to move the funds
-        var transfer = await member.redeemToken(token);
-        //console.log('\n Redeem Token Response:', transfer);
-        res.send('Success! Redeemed transfer ' + transfer.id);
+        let csrfTokenValue = req.session.csrfToken;
+
+
+        const result = await Token.parseTokenRequestCallbackUrl(callbackUrl, csrfTokenValue);
+        const token1 = await member.getToken(result.tokenId);
+        // Redeem the token to move the funds
+        const transfer = await member.redeemToken(token1);
+         console.log('\n Redeem Token Response:', transfer);
     });
 
 
